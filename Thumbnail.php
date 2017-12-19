@@ -22,13 +22,19 @@ class Thumbnail extends \yii\base\Component
      * Path to cache directory
      * @var string
      */
-    public $cachePath = '@runtime/thumbnails';
+    public $cachePath = '@webroot/assets/thumbnails';
+    
+
+    public $cacheUrl = '@web/assets/thumbnails';
+
+
+    public $appDomain = "";
 
     /**
      * Base path
      * @var null
      */
-    public $basePath = null;
+    public $basePath = "@webroot/..";
 
     /**
      * Prefix path
@@ -54,7 +60,7 @@ class Thumbnail extends \yii\base\Component
 
     private $defaultOptions = [
         'placeholder' => [
-            'type' => Thumbnail::PLACEHOLDER_TYPE_URL,
+            'type' => Thumbnail::PLACEHOLDER_TYPE_IMAGINE,
             'backgroundColor' => '#f5f5f5',
             'textColor' => '#cdcdcd',
             'textSize' => 30,
@@ -116,6 +122,23 @@ class Thumbnail extends \yii\base\Component
      */
     public function img($file, array $params, $options = [], $schema = false)
     {
+        if(count($params) == 2 && empty($param['width']) && empty($params['height']) && (int)$params[0] && (int)$params[1]){
+            $params['width'] = $params[0];
+            $params['height'] = $params[1];
+            unset($params[0]);unset($params[1]);
+        }
+        
+
+        if(!empty($params['width']) && !empty($params['height']) && empty($params['thumbnail'])){
+            $params['thumbnail']['width'] = $params['placeholder']['width'] = $params['width'];
+            $params['thumbnail']['height'] = $params['placeholder']['height'] = $params['height'];
+        }    
+
+
+        if(empty($params['placeholder']) && !empty($params['thumbnail'])) $params['placeholder'] = $params['thumbnail'];
+
+
+
         $cacheFileSrc = $this->make($file, $params);
 
         if (!$cacheFileSrc) {
@@ -142,6 +165,22 @@ class Thumbnail extends \yii\base\Component
      */
     public function url($file, array $params, $schema = false)
     {
+
+        if(count($params) == 2 && empty($param['width']) && empty($params['height']) && (int)$params[0] && (int)$params[1]){
+            $params['width'] = $params[0];
+            $params['height'] = $params[1];
+            unset($params[0]);unset($params[1]);
+        }
+        
+
+        if(!empty($params['width']) && !empty($params['height']) && empty($params['thumbnail'])){
+            $params['thumbnail']['width'] = $params['placeholder']['width'] = $params['width'];
+            $params['thumbnail']['height'] = $params['placeholder']['height'] = $params['height'];
+        }    
+
+
+        if(empty($params['placeholder']) && !empty($params['thumbnail'])) $params['placeholder'] = $params['thumbnail'];
+
         $cacheFileSrc = $this->make($file, $params);
 
         if (!$cacheFileSrc) {
@@ -331,13 +370,36 @@ class Thumbnail extends \yii\base\Component
      */
     private function make($filePath, array $params)
     {
-        if (!is_null($this->basePath)) {
-            $fileFullPath = FileHelper::normalizePath(\Yii::getAlias($this->basePath . '/' . $filePath));
-        } else {
-            $fileFullPath = FileHelper::normalizePath($filePath);
-        }
+        if(!in_array(strtolower(substr($filePath, -3)), ["jpg","png"])) return false;
 
-        $fileFullPath = urldecode($fileFullPath);
+        if($this->appDomain)
+            $filePath = str_replace(["http://".$this->appDomain, "https://".$this->appDomain,"",$filePath);
+
+        if(!empty($params['width']) && !empty($params['height'])){
+            $params['thumbnail']['width'] = $params['placeholder']['width'] = $params['width'];
+            $params['thumbnail']['height'] = $params['placeholder']['height'] = $params['height'];
+        }    
+
+
+        if(substr($filePath, 0,4) == 'http'){
+            
+            $localFn = Yii::getAlias(Yii::getAlias($this->cachePath). '/' .str_replace([":","/","\\"],"-",FileHelper::normalizePath($filePath)));
+            $fileFullPath = $localFn;
+            if(!file_exists($localFn)){
+                $data = $this->http_file_get_contents($filePath);
+                if($data) file_put_contents($fileFullPath, $data);
+            }
+        } else {
+
+            if (!is_null($this->basePath)) {
+                $fileFullPath = FileHelper::normalizePath(\Yii::getAlias($this->basePath . '/' . $filePath));
+            } else {
+                $fileFullPath = FileHelper::normalizePath($filePath);
+            }
+
+            $fileFullPath = urldecode($fileFullPath);
+
+        }
 
         if (!is_file($fileFullPath)) {
             return false;
