@@ -22,10 +22,10 @@ class Thumbnail extends \yii\base\Component
      * Path to cache directory
      * @var string
      */
-    public $cachePath = '@webroot/assets/thumbnails';
+    public $cachePath = 'assets/thumbnails';
     
 
-    public $cacheUrl = '@web/assets/thumbnails';
+    public $cacheUrl = 'assets/thumbnails';
 
 
     public $appDomain = "";
@@ -63,7 +63,7 @@ class Thumbnail extends \yii\base\Component
             'type' => Thumbnail::PLACEHOLDER_TYPE_IMAGINE,
             'backgroundColor' => '#f5f5f5',
             'textColor' => '#cdcdcd',
-            'textSize' => 30,
+            'textSize' => 10,
             'text' => 'No image'
         ],
         'quality' => 92,
@@ -269,8 +269,8 @@ class Thumbnail extends \yii\base\Component
 
         list($left, , $right) = imageftbbox($textSize, 0, $fontPath, $text);
 
-        $x = $width / 2 - ($right - $left) / 2;
-        $y = $height / 2 - $textSize / 2;
+        $x = abs($width / 2 - ($right - $left) / 2);
+        $y = abs($height / 2 - $textSize / 2);
 
         $image->draw()->text($text, $font, new Point($x, $y));
 
@@ -373,7 +373,7 @@ class Thumbnail extends \yii\base\Component
         if(!in_array(strtolower(substr($filePath, -3)), ["jpg","png"])) return false;
 
         if($this->appDomain)
-            $filePath = str_replace(["http://".$this->appDomain, "https://".$this->appDomain,"",$filePath);
+            $filePath = str_replace(["http://".$this->appDomain, "https://".$this->appDomain],"",$filePath);
 
         if(!empty($params['width']) && !empty($params['height'])){
             $params['thumbnail']['width'] = $params['placeholder']['width'] = $params['width'];
